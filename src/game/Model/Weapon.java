@@ -1,121 +1,152 @@
 
 package game.Model;
 
-import game.View.Entity;
-import game.View.GameFrame;
-import static game.View.GameFrame.enemycount;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Rectangle;
-import java.util.ArrayList;
-import javax.swing.ImageIcon;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 
-
-public class Weapon extends Entity {
-   
+/**
+ * Modern Weapon class using JavaFX
+ */
+public class Weapon {
     
+    private String name;
+    private int damage;
+    private int maxAmmo;
+    private int currentAmmo;
+    private double fireRate; // shots per second
+    private double lastShotTime;
+    private boolean isReloading = false;
+    private double reloadTime = 2.0; // seconds
+    private double reloadStartTime;
     
-    public Weapon(int x, int y) {
-        super(x, y);
-    } 
-    public static int Currentnumberofbullets=6;
-    int maxnumberofbullets=6;
-    int indexw;
-    public static int score=0;
-    public static int flag=0;
-    @Override
-   public void Update (){  
-        switch (indexw) {
-            case 2:
-                x -=10;
-                break;
-            case 3:
-                y -=10;
-                break;
-            case 4:
-                y +=10;
-                break;
-            default:
-                x+=10;
-                break;
-        }
-       CheckCollision();
-   }
-    @Override
-    public void draw (Graphics2D g2d){
-    g2d.drawImage(getWeaponImage(), x,y, null);
-    }
+    private Image weaponImage;
+    private double x, y;
+    private double width = 30;
+    private double height = 30;
     
-    public Image getWeaponImage(){
+    public Weapon(String name, int damage, int maxAmmo, double fireRate) {
+        this.name = name;
+        this.damage = damage;
+        this.maxAmmo = maxAmmo;
+        this.currentAmmo = maxAmmo;
+        this.fireRate = fireRate;
+        this.lastShotTime = 0;
         
-    ImageIcon ic = new ImageIcon("Bullet1.png");
-        return ic.getImage();
-    }
-     
-     public Rectangle getBounds(){
-    return new Rectangle(x+5,y+5,10,10);
-    }
-     
-
-    
-    
-     
-     public void CheckCollision(){
-     ArrayList <Enemy>enemies = GameFrame.getEnemyList();
-    ArrayList <Wall> wall = GameFrame.getWallList();
-    ArrayList <Gift> gift = GameFrame.getGiftList();
-    ArrayList <Bomb> bombs = GameFrame.getBombList();
-    ArrayList <Armor> armor = GameFrame.getArmorList();
-    ArrayList <Obstacle> obstacless = GameFrame.getObstaclesList();
-    for (int i = 0 ; i< enemies.size();i++){
-    if (getBounds().intersects(enemies.get(i).getBounds())){
-        GameFrame.removeEnemies(enemies.get(i));
-        score+=20;
-        GameFrame.removeWeapon(this);
-        enemycount--;
-    }
-    }
-    if (enemycount == 0){
-    flag=1;
-    }
-    for (int i = 0 ; i< wall.size() ;i++){
-    if (getBounds().intersects(wall.get(i).getBounds())){
-      GameFrame.removeWeapon(this);
-    }}
-    
-    for (int i = 0 ; i< bombs.size() ;i++){
-    if (getBounds().intersects(bombs.get(i).getBounds())){
-        bombs.remove(bombs.get(i));
-        score+=10;
-       GameFrame.removeWeapon(this);
+        // Load weapon image based on name
+        loadWeaponImage();
     }
     
-   }
-    for (int i = 0 ; i< gift.size() ;i++){
-    if (getBounds().intersects(gift.get(i).getBounds())){
-            gift.remove(gift.get(i));
-            GameFrame.removeWeapon(this);
-                }
-   }
-    for (int i = 0 ; i< armor.size() ;i++){
-    if (getBounds().intersects(armor.get(i).getBounds())){
-        armor.remove(armor.get(i));
-        GameFrame.removeWeapon(this);
-                }
-   }
+    private void loadWeaponImage() {
+        try {
+            switch (name.toLowerCase()) {
+                case "pistol":
+                    weaponImage = new Image(getClass().getResourceAsStream("/game/View/Bullet1.png"));
+                    break;
+                case "rifle":
+                    weaponImage = new Image(getClass().getResourceAsStream("/game/View/Bullet1.png"));
+                    break;
+                case "shotgun":
+                    weaponImage = new Image(getClass().getResourceAsStream("/game/View/Bullet1.png"));
+                    break;
+                default:
+                    weaponImage = new Image(getClass().getResourceAsStream("/game/View/Bullet1.png"));
+                    break;
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load weapon image for " + name + ": " + e.getMessage());
+        }
+    }
     
-    for (int i = 0 ; i< obstacless.size() ;i++){
-    if (getBounds().intersects(obstacless.get(i).getBounds())){
-        GameFrame.removeObstacle(obstacless.get(i));
-        GameFrame.removeWeapon(this);
-                }
-   }
-   }
-
+    public boolean canShoot() {
+        if (isReloading) return false;
+        if (currentAmmo <= 0) return false;
+        
+        double currentTime = System.currentTimeMillis() / 1000.0;
+        return (currentTime - lastShotTime) >= (1.0 / fireRate);
+    }
     
-     
-     
-     
-
-   
+    public void shoot() {
+        if (!canShoot()) return;
+        
+        currentAmmo--;
+        lastShotTime = System.currentTimeMillis() / 1000.0;
+        
+        // TODO: Create bullet projectile
+        // This would be handled by the game engine
+    }
+    
+    public void reload() {
+        if (isReloading || currentAmmo == maxAmmo) return;
+        
+        isReloading = true;
+        reloadStartTime = System.currentTimeMillis() / 1000.0;
+    }
+    
+    public void update(double deltaTime) {
+        if (isReloading) {
+            double currentTime = System.currentTimeMillis() / 1000.0;
+            if (currentTime - reloadStartTime >= reloadTime) {
+                currentAmmo = maxAmmo;
+                isReloading = false;
+            }
+        }
+    }
+    
+    public void render(GraphicsContext gc) {
+        if (weaponImage != null) {
+            gc.drawImage(weaponImage, x, y, width, height);
+        } else {
+            // Fallback to rectangle drawing
+            gc.setFill(Color.DARKGRAY);
+            gc.fillRect(x, y, width, height);
+            gc.setStroke(Color.WHITE);
+            gc.setLineWidth(1);
+            gc.strokeRect(x, y, width, height);
+        }
+    }
+    
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public int getDamage() { return damage; }
+    public void setDamage(int damage) { this.damage = damage; }
+    
+    public int getMaxAmmo() { return maxAmmo; }
+    public void setMaxAmmo(int maxAmmo) { this.maxAmmo = maxAmmo; }
+    
+    public int getCurrentAmmo() { return currentAmmo; }
+    public void setCurrentAmmo(int currentAmmo) { this.currentAmmo = currentAmmo; }
+    
+    public double getFireRate() { return fireRate; }
+    public void setFireRate(double fireRate) { this.fireRate = fireRate; }
+    
+    public boolean isReloading() { return isReloading; }
+    public void setReloading(boolean reloading) { isReloading = reloading; }
+    
+    public double getReloadTime() { return reloadTime; }
+    public void setReloadTime(double reloadTime) { this.reloadTime = reloadTime; }
+    
+    public double getX() { return x; }
+    public void setX(double x) { this.x = x; }
+    
+    public double getY() { return y; }
+    public void setY(double y) { this.y = y; }
+    
+    public double getWidth() { return width; }
+    public void setWidth(double width) { this.width = width; }
+    
+    public double getHeight() { return height; }
+    public void setHeight(double height) { this.height = height; }
+    
+    public Image getWeaponImage() { return weaponImage; }
+    public void setWeaponImage(Image weaponImage) { this.weaponImage = weaponImage; }
+    
+    public String getAmmoStatus() {
+        if (isReloading) {
+            return "Reloading...";
+        }
+        return currentAmmo + "/" + maxAmmo;
+    }
 }
